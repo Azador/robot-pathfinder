@@ -32,7 +32,10 @@ all: $(OBJ_DIR)/robot-pathfinder$(EXECUTABLE_EXTENSION)
 clean:
 	rm -f $(OBJECT_FILES) 
 
-$(OBJ_DIR)/robot-pathfinder.$(OBJECT_EXTENSION): robot-pathfinder.h robot-map.h
+$(OBJ_DIR):
+	mkdir $(OBJ_DIR)
+
+$(OBJ_DIR)/robot-pathfinder.$(OBJECT_EXTENSION): robot-pathfinder.h robot-map.h $(OBJ_DIR)
 
 $(OBJ_DIR)/robot-pathfinder$(EXECUTABLE_EXTENSION): $(OBJECT_FILES)
 	$(LN) $(LN_OUTPUT_OPTION)$@ $(OBJECT_FILES)
