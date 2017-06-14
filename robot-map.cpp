@@ -12,6 +12,11 @@ namespace Pathfinder
   {
   }
 
+  bool Position::operator== (const Position & other) const
+  {
+	  return other._x == _x && other._y == _y;
+  }
+
   MapObject::MapObject ()
   : _poly ()
   {
@@ -22,7 +27,16 @@ namespace Pathfinder
     return _poly;
   }
 
+  bool MapObject::isClosed () const
+  {
+	  if (_poly.size () < 2)
+		  return false;
+
+	  return _poly.front () == _poly.back ();
+  }
+
   Map::Map ()
+  : _objects ()
   {
   }
 }

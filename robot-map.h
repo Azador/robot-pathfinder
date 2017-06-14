@@ -11,6 +11,8 @@ namespace Pathfinder
     public:
       Position (double x, double y);
 
+      bool operator== (const Position & other) const;
+
     private:
       double _x;
       double _y;
@@ -22,6 +24,7 @@ namespace Pathfinder
       MapObject ();
 
       const std::vector<Position>& getPolygon () const;
+      bool isClosed () const;
 
     private:
       std::vector<Position> _poly;
@@ -31,5 +34,8 @@ namespace Pathfinder
   {
     public:
       Map ();
+
+    private:
+      std::vector<MapObject> _objects;
   };
 }
