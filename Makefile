@@ -4,7 +4,7 @@
 
 OBJ_DIR=obj
 
-SOURCE_FILES=robot-pathfinder.cpp robot-map.cpp
+SOURCE_FILES=robot-pathfinder.cpp robot-map.cpp robot-geometry.cpp
 
 ifeq ($(OS),Windows_NT)
 CXX = cl.exe
@@ -36,7 +36,11 @@ clean:
 $(OBJ_DIR):
 	mkdir $(OBJ_DIR)
 
-$(OBJ_DIR)/robot-pathfinder.$(OBJECT_EXTENSION): robot-pathfinder.h robot-map.h $(OBJ_DIR)
+$(OBJ_DIR)/robot-pathfinder.$(OBJECT_EXTENSION): robot-pathfinder.h robot-map.h robot-geometry.h $(OBJ_DIR)
+
+$(OBJ_DIR)/robot-map.$(OBJECT_EXTENSION): robot-map.h robot-geometry.h $(OBJ_DIR)
+
+$(OBJ_DIR)/robot-geometry.$(OBJECT_EXTENSION): robot-geometry.h $(OBJ_DIR)
 
 $(OBJ_DIR)/robot-pathfinder$(EXECUTABLE_EXTENSION): $(OBJECT_FILES)
 	$(LN) $(LN_OUTPUT_OPTION)$@ $(OBJECT_FILES)
