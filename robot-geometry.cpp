@@ -113,6 +113,12 @@ namespace Pathfinder
     return p.distance (pos);
   }
 
+  double Line::distance (const Position & pos, double *t) const
+  {
+    Position p = perpend (pos, t);
+    return p.distance (pos);
+  }
+
   const Position & Line::getPosition1 () const
   {
     return _p1;

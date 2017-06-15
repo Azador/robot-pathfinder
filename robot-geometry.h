@@ -40,6 +40,7 @@ namespace Pathfinder
 
       virtual Position perpend (const Position & pos, double *t) const;
       virtual double distance (const Position & pos) const;
+      virtual double distance (const Position & pos, double *t) const;
 
       const Position & getPosition1 () const;
       const Position & getPosition2 () const;

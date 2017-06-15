@@ -20,6 +20,7 @@ namespace std
       ~optional () { reset (); };
 
       void reset () { if (_d != 0) { delete _d; _d = 0;} };
+      T & emplace () { if (_d == 0) new T; return *_d; };
 
       T * operator-> () { return _d; };
       const T * operator-> () const { return _d; };
@@ -29,7 +30,7 @@ namespace std
 
       const T & operator= (const T & v)
       {
-        if (_d == 0) _d = new T;
+        emplace ();
         *_d = v;
         return *_d;
       }
@@ -46,15 +47,24 @@ namespace Pathfinder
   class MapObject
   {
     public:
-      MapObject ();
+      MapObject (double min_point_distance);
 
       const std::vector<Position>& getPolygon () const;
       bool isClosed () const;
       bool isEmpty () const;
       bool join (const MapObject & other, double max_dist);
-      std::optional<std::pair<double, uint32_t> > findClosestPosition (const Position & pos) const;
+      bool addPoint (const Position & point, double max_dist);
+
+      struct FindResult
+      {
+          double distance;
+          uint32_t point_index;
+          double   fraction_to_next_point;
+      };
+      std::optional<FindResult> findClosestPosition (const Position & pos) const;
 
     private:
+      double _min_point_distance;
       std::vector<Position> _poly;
   };
 
