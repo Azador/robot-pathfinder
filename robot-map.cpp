@@ -33,6 +33,16 @@ namespace Pathfinder
     return _poly.empty ();
   }
 
+  /* Join two MapObjects.
+   *
+   * The points should be in similar distances on both objects, otherwise this algorithm
+   * might not work correctly.
+   *
+   * The objects must have positions, where they are not further than max_dist away.
+   * There must be no splits in the resulting polygon.
+   *
+   * The resulting object should be smoothed and made equidistant again.
+   */
   bool MapObject::join (const MapObject & other, double max_dist)
   {
     if (other.isEmpty ())
@@ -73,24 +83,115 @@ namespace Pathfinder
       }
 
     // At least two points in both objects
+    // Find the first point of other, which is close enough to this.
+    std::optional<MapObject::FindResult> dist;
+    uint32_t idx = 0;
 
-    std::optional<MapObject::FindResult> best_dist = findClosestPosition (other._poly[0]);
-    uint32_t best_idx = 0;
-    for (uint32_t i=1; i < other._poly.size (); ++i)
+    for (uint32_t i=0; i < other._poly.size (); ++i)
       {
-        std::optional<MapObject::FindResult> dist = findClosestPosition (other._poly[i]);
+        dist = findClosestPosition (other._poly[i]);
         if (!dist.has_value ())
           continue;
 
-        if (!best_dist.has_value () || dist->distance < best_dist->distance)
+        if (dist->distance <= max_dist)
           {
-            best_dist = dist;
-            best_idx = i;
+            idx = 0;
+            break;
           }
       }
 
-    if (!best_dist.has_value () || best_dist->distance > max_dist)
+    if (!dist.has_value () || dist->distance > max_dist)
       return false;
+
+    uint32_t first_idx = idx;
+
+    // We should not have splits of the line.
+    // Check if the next three points before the found point are closest to the same
+    // point on this.
+    for (uint32_t i=idx; i > 0 && i > idx-3; --i)
+      {
+        std::optional<MapObject::FindResult> dist2
+        = findClosestPosition (other._poly[i-1]);
+
+        if (dist2->point_index != dist->point_index)
+          {
+            // This seems to be a split
+            return false;
+          }
+      }
+
+    // The next points have to be either close to this or one of the polygons have to end.
+    for (uint32_t i=idx+1; i < other._poly.size (); ++i)
+      {
+        std::optional<MapObject::FindResult> dist2
+        = findClosestPosition (other._poly[i]);
+
+        if (dist2->distance > max_dist)
+          break;
+
+        dist = dist2;
+        idx = i;
+      }
+
+    // Check if the next three points after the last found point are closest to the same
+    // point on this.
+    for (uint32_t i=idx; i < other._poly.size () && i < idx+3; --i)
+      {
+        std::optional<MapObject::FindResult> dist2
+        = findClosestPosition (other._poly[i]);
+
+        if (dist2->point_index != dist->point_index)
+          {
+            // This seems to be a split
+            return false;
+          }
+      }
+
+    // Now check all remaining points, they should not be near this again.
+    // Only exception: This and other together create a closed polygon.
+    bool found_circle = false;
+    for (uint32_t i=idx+3; i < other._poly.size (); ++i)
+      {
+        std::optional<MapObject::FindResult> dist2
+        = findClosestPosition (other._poly[i]);
+
+        if (dist2->distance < max_dist)
+          {
+            found_circle = false;
+            idx = i;
+            dist = dist2;
+            break;
+          }
+      }
+
+    if (found_circle)
+      {
+        // This is the _second_ matching part of the polygons.
+
+        // If it is not the first or last point of this, it is the wrong point.
+        if (dist->point_index != 0 && dist->point_index != _poly.size () - 1)
+          return false;
+
+        // if the first matching part didn't start with the first point of other,
+        // it was the wrong point.
+        if (first_idx != 0)
+          return false;
+
+        // Follow the second matching part to the end.
+        for (uint32_t i=idx+1; i < other._poly.size (); ++i)
+          {
+            std::optional<MapObject::FindResult> dist2
+            = findClosestPosition (other._poly[i]);
+
+            if (dist2->distance > max_dist)
+              {
+                // It must not leave this any more.
+                return false;
+              }
+          }
+      }
+
+    // Polygons have no split and can be merged.
 
     // ToDo: Code for merging the polygons is missing.
 
@@ -145,6 +246,33 @@ namespace Pathfinder
       }
 
     return true;
+  }
+
+  /* Smooth the polygon by moving points if they are not further away than max_deviation
+   * from a polynom fitting curve (degree 2) of the next filter_size surrounding points
+   * (min. 2) to each side, including the point in question.
+   */
+  void MapObject::smooth (double max_deviation, uint32_t filter_size)
+  {
+  }
+
+  /* Change the number of points, so that at least min_points points exist and these points
+   * are preferably max_dist or less apart from each other.
+   * But points only get a bigger distance than they actually have if the dropped or
+   * moved point won't be more than max_deviation away from the the new resulting
+   * polygon.
+   */
+  void MapObject::makeEquidistant (double max_dist, uint32_t min_points, double max_deviation)
+  {
+  }
+
+  /* Change this MapObject to its convex hull.
+   * If this is not closed, it will be closed before creating the convex hull by
+   * connecting the end point to the start point.
+   * Crossings will be removed before creating the convex hull.
+   */
+  void MapObject::convexHull ()
+  {
   }
 
   std::optional<MapObject::FindResult>

@@ -54,6 +54,9 @@ namespace Pathfinder
       bool isEmpty () const;
       bool join (const MapObject & other, double max_dist);
       bool addPoint (const Position & point, double max_dist);
+      void smooth (double max_deviation, uint32_t filter_size);
+      void makeEquidistant (double max_dist, uint32_t min_points, double max_deviation);
+      void convexHull ();
 
       struct FindResult
       {
