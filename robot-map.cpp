@@ -82,6 +82,12 @@ namespace Pathfinder
         return true;
       }
 
+    if (isClosed () || other.isClosed ())
+    {
+    	// ToDo: Check if the objects completely match and then join them to get more observations for the polygon
+    	return false;
+    }
+
     // At least two points in both objects
     // Find the first point of other, which is close enough to this.
     std::optional<MapObject::FindResult> dist;
@@ -95,7 +101,7 @@ namespace Pathfinder
 
         if (dist->distance <= max_dist)
           {
-            idx = 0;
+            idx = i;
             break;
           }
       }
@@ -192,10 +198,32 @@ namespace Pathfinder
       }
 
     // Polygons have no split and can be merged.
+    if (first_idx > 0)
+    	_poly.insert (_poly.begin (), other._poly.begin (), other._poly.begin () + first_idx);
 
-    // ToDo: Code for merging the polygons is missing.
+    for (uint32_t i=first_idx; i < other._poly.size (); ++i)
+    {
+        std::optional<MapObject::FindResult> dist2
+        = findClosestPosition (other._poly[i]);
 
-    return false;
+        if (dist2->distance < max_dist)
+        {
+        	dist = dist2;
+        	addPoint (other._poly[i], max_dist);
+        }
+        else
+        {
+        	if (dist->fraction_to_next_point == 1.0)
+        		_poly.insert (_poly.begin () + dist->point_index + 2, other._poly[i]);
+        	else
+        		_poly.insert (_poly.begin () + dist->point_index + 1, other._poly[i]);
+        }
+    }
+
+    if (found_circle)
+    	_poly.push_back (_poly[0]);
+
+    return true;
   }
 
   bool MapObject::addPoint (const Position & point, double max_dist)
@@ -217,7 +245,7 @@ namespace Pathfinder
       {
         // After last point -> use as last point
         if (point.distance (_poly.back ()) >= _min_point_distance)
-          _poly.insert (_poly.end (), point);
+          _poly.push_back (point);
         return true;
       }
 
@@ -236,20 +264,19 @@ namespace Pathfinder
       dist->point_index++;
 
     // fraction == 0.0
-    if (_poly[dist->point_index-1].distance (point) < _poly[dist->point_index+1].distance(point))
-      {
-        _poly.insert (_poly.begin () + dist->point_index, point);
-      }
-    else
-      {
-        _poly.insert (_poly.begin () + dist->point_index + 1, point);
-      }
+    if (point.distance (_poly[dist->point_index]) >= _min_point_distance)
+    {
+    	if (_poly[dist->point_index-1].distance (point) < _poly[dist->point_index+1].distance(point))
+    		_poly.insert (_poly.begin () + dist->point_index, point);
+    	else
+    		_poly.insert (_poly.begin () + dist->point_index + 1, point);
+    }
 
     return true;
   }
 
   /* Smooth the polygon by moving points if they are not further away than max_deviation
-   * from a polynom fitting curve (degree 2) of the next filter_size surrounding points
+   * from a polynomial fitting curve (degree 2) of the next filter_size surrounding points
    * (min. 2) to each side, including the point in question.
    */
   void MapObject::smooth (double max_deviation, uint32_t filter_size)
