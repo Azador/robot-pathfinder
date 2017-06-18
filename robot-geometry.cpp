@@ -10,79 +10,24 @@
 namespace Pathfinder
 {
   Position::Position ()
-  : _x (),
-    _y ()
+  : Vector ()
+  {
+  }
+
+  Position::Position (const Vector<2> & v)
+  : Vector (v)
   {
   }
 
   Position::Position (double x, double y)
-  : _x (x),
-    _y (y)
+  : Vector ({x, y})
   {
   }
 
   double Position::distance (const Position & other) const
   {
-    double dx = other._x - _x;
-    double dy = other._y - _y;
-    return sqrt (dx*dx + dy*dy);
-  }
-
-  bool Position::operator== (const Position & other) const
-  {
-	  return other._x == _x && other._y == _y;
-  }
-
-  Position Position::operator+ (const Position & other) const
-  {
-    Position result = *this;
-    result += other;
-    return result;
-  }
-
-  Position Position::operator- (const Position & other) const
-  {
-    Position result = *this;
-    result -= other;
-    return result;
-  }
-
-  Position Position::operator* (double factor) const
-  {
-    Position result = *this;
-    result *= factor;
-    return result;
-  }
-
-  Position & Position::operator+= (const Position & other)
-  {
-    _x += other._x;
-    _y += other._y;
-    return *this;
-  }
-
-  Position & Position::operator-= (const Position & other)
-  {
-    _x -= other._x;
-    _y -= other._y;
-    return *this;
-  }
-
-  Position & Position::operator*= (double factor)
-  {
-    _x *= factor;
-    _y *= factor;
-    return *this;
-  }
-
-  double Position::operator* (const Position & other) const
-  {
-    return _x * other._x + _y * other._y;
-  }
-
-  double Position::length2 () const
-  {
-    return _x*_x + _y*_y;
+    Vector diff = other - *this;
+    return sqrt (diff*diff);
   }
 
 
@@ -98,8 +43,8 @@ namespace Pathfinder
 
   Position Line::perpend (const Position & pos, double *t) const
   {
-    Position dir = _p2 - _p1;
-    Position r = pos - _p1;
+    Vector<2> dir = _p2 - _p1;
+    Vector<2> r = pos - _p1;
 
     *t = (r*dir) / dir.length2 ();
 
@@ -161,6 +106,63 @@ namespace Pathfinder
         return result;
       }
 
+    return result;
+  }
+
+  Transformation::Transformation ()
+  : Matrix ()
+  {
+  }
+
+  Transformation::Transformation (const Position & translation, double rotation, double scale)
+  : Matrix ()
+  {
+    set (translation, rotation, scale);
+  }
+
+  void Transformation::set (const Position & translation, double rotation, double scale)
+  {
+    (*this)[0][0] =  cos (rotation);
+    (*this)[0][1] = -sin (rotation);
+    (*this)[1][0] =  sin (rotation);
+    (*this)[1][1] =  cos (rotation);
+    (*this)[0][2] = translation.x ();
+    (*this)[1][2] = translation.y ();
+    (*this)[2][0] = (*this)[2][1] = 0.0;
+    (*this)[2][2] = 1.0/scale;
+  }
+
+  Position Transformation::getTranslation () const
+  {
+    Position result;
+    result.x () = (*this)[0][2];
+    result.y () = (*this)[1][2];
+    return result;
+  }
+
+  double Transformation::getRotation () const
+  {
+    return atan2 ((*this)[1][0], (*this)[0][0]);
+  }
+
+  double Transformation::getScale () const
+  {
+    return 1.0 / (*this)[2][2];
+  }
+
+  Position Transformation::transformPosition (const Position & pos) const
+  {
+    Position result;
+    result.x () = ((*this)[0][0] * pos.x () + (*this)[0][1] * pos.y () + (*this)[0][2]) / (*this)[2][2];
+    result.y () = ((*this)[1][0] * pos.x () + (*this)[1][1] * pos.y () + (*this)[1][2]) / (*this)[2][2];
+    return result;
+  }
+
+  Position Transformation::rotatePosition (const Position & pos) const
+  {
+    Position result;
+    result.x () = (*this)[0][0] * pos.x () + (*this)[0][1] * pos.y ();
+    result.y () = (*this)[1][0] * pos.x () + (*this)[1][1] * pos.y ();
     return result;
   }
 }
