@@ -10,24 +10,24 @@
 namespace Pathfinder
 {
   Position::Position ()
-  : Vector ()
+  : Eigen::Vector2d ()
   {
   }
 
-  Position::Position (const Vector<2> & v)
-  : Vector (v)
+  Position::Position (const Eigen::Vector2d & v)
+  : Eigen::Vector2d (v)
   {
   }
 
   Position::Position (double x, double y)
-  : Vector ({x, y})
+  : Eigen::Vector2d ({x, y})
   {
   }
 
   double Position::distance (const Position & other) const
   {
-    Vector diff = other - *this;
-    return sqrt (diff*diff);
+    Eigen::Vector2d diff = other - *this;
+    return diff.norm ();
   }
 
 
@@ -43,12 +43,12 @@ namespace Pathfinder
 
   Position Line::perpend (const Position & pos, double *t) const
   {
-    Vector<2> dir = _p2 - _p1;
-    Vector<2> r = pos - _p1;
+    Eigen::Vector2d dir = _p2 - _p1;
+    Eigen::Vector2d r = pos - _p1;
 
-    *t = (r*dir) / dir.length2 ();
+    *t = (r.dot (dir)) / dir.squaredNorm ();
 
-    return _p1 + dir * *t;
+    return Position (_p1 + dir * *t);
   }
 
   double Line::distance (const Position & pos) const
@@ -76,7 +76,7 @@ namespace Pathfinder
 
   Position Line::getDirection () const
   {
-    return _p2 - _p1;
+    return Position (_p2 - _p1);
   }
 
   LineSegment::LineSegment (const Position & p1, const Position & p2)
@@ -110,59 +110,66 @@ namespace Pathfinder
   }
 
   Transformation::Transformation ()
-  : Matrix ()
+  : Eigen::Affine2d ()
+  {
+  }
+
+  Transformation::Transformation (const Eigen::Affine2d & trafo)
+  : Eigen::Affine2d (trafo)
   {
   }
 
   Transformation::Transformation (const Position & translation, double rotation, double scale)
-  : Matrix ()
+  : Eigen::Affine2d ()
   {
     set (translation, rotation, scale);
   }
 
   void Transformation::set (const Position & translation, double rotation, double scale)
   {
-    (*this)[0][0] =  cos (rotation);
-    (*this)[0][1] = -sin (rotation);
-    (*this)[1][0] =  sin (rotation);
-    (*this)[1][1] =  cos (rotation);
-    (*this)[0][2] = translation.x ();
-    (*this)[1][2] = translation.y ();
-    (*this)[2][0] = (*this)[2][1] = 0.0;
-    (*this)[2][2] = 1.0/scale;
+    *this = Eigen::Scaling (scale) * Eigen::Translation2d (translation) * Eigen::Rotation2Dd (rotation);
   }
 
   Position Transformation::getTranslation () const
   {
     Position result;
-    result.x () = (*this)[0][2];
-    result.y () = (*this)[1][2];
+    result.x () = (*this)(0, 2);
+    result.y () = (*this)(1, 2);
     return result;
   }
 
   double Transformation::getRotation () const
   {
-    return atan2 ((*this)[1][0], (*this)[0][0]);
+    Eigen::Matrix2d rotation;
+    computeScalingRotation<Eigen::Matrix2d, Eigen::Matrix2d>
+      (nullptr /*scaling*/, &rotation);
+
+    Eigen::Rotation2Dd rot2;
+    rot2.fromRotationMatrix (rotation);
+    return rot2.angle ();
   }
 
   double Transformation::getScale () const
   {
-    return 1.0 / (*this)[2][2];
+    Eigen::Matrix2d scaling;
+    computeScalingRotation<Eigen::Matrix2d, Eigen::Matrix2d>
+      (&scaling, nullptr /*rotation*/);
+    return (scaling.diagonal ().operator() (0) + scaling.diagonal ().operator() (1)) / 2.0;
   }
 
   Position Transformation::transformPosition (const Position & pos) const
   {
     Position result;
-    result.x () = ((*this)[0][0] * pos.x () + (*this)[0][1] * pos.y () + (*this)[0][2]) / (*this)[2][2];
-    result.y () = ((*this)[1][0] * pos.x () + (*this)[1][1] * pos.y () + (*this)[1][2]) / (*this)[2][2];
+    result.x () = ((*this)(0, 0) * pos.x () + (*this)(0, 1) * pos.y () + (*this)(0, 2)) / (*this)(2, 2);
+    result.y () = ((*this)(1, 0) * pos.x () + (*this)(1, 1) * pos.y () + (*this)(1, 2)) / (*this)(2, 2);
     return result;
   }
 
   Position Transformation::rotatePosition (const Position & pos) const
   {
     Position result;
-    result.x () = (*this)[0][0] * pos.x () + (*this)[0][1] * pos.y ();
-    result.y () = (*this)[1][0] * pos.x () + (*this)[1][1] * pos.y ();
+    result.x () = (*this)(0, 0) * pos.x () + (*this)(0, 1) * pos.y ();
+    result.y () = (*this)(1, 0) * pos.x () + (*this)(1, 1) * pos.y ();
     return result;
   }
 }
