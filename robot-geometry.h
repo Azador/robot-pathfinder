@@ -129,27 +129,20 @@ namespace Pathfinder
       return false;
 
     for (double& ti: t)
-      ti /= t.back () / 2.0 - 1.0;
+      ti = 2.0 * ti / t.back () - 1.0;
 
-    for (uint32_t i=0; i <= degree; ++i)
-      _coeff[i] = Position (0, 0);
+    for (uint32_t i=0; i < t.size (); ++i)
+      std::cerr << "t[" << i << "] = " << t[i] << std::endl;
 
     for (uint32_t i=0; i < positions.size (); ++i)
       {
         double ti = t[i];
 
-        vx[i] = 0.0;
-        vy[i] = 0.0;
         for (uint32_t j=0; j <= degree; ++j)
-          {
-            double pti = ::pow (ti, j);
-            a (i, j) = -pti;
-            vx[i] += _coeff[j].x () * pti;
-            vy[i] += _coeff[j].y () * pti;
-          }
+          a (i, j) = ::pow (ti, j);
 
-        vx[i] = vx[i] - positions[i].x ();
-        vy[i] = vy[i] - positions[i].y ();
+        vx[i] = positions[i].x ();
+        vy[i] = positions[i].y ();
       }
 
     Eigen::Matrix<double, degree+1, degree+1> n = a.transpose () * a;
@@ -161,7 +154,7 @@ namespace Pathfinder
     Eigen::Matrix<double, degree+1, 1> xy = cholesky.solve (ly);
 
     for (uint32_t i=0; i <= degree; ++i)
-      _coeff[i] += Position (xx[i], xy[i]);
+      _coeff[i] = Position (xx[i], xy[i]);
 
     return true;
   }
@@ -186,6 +179,13 @@ namespace Pathfinder
       }
 
     std::cerr << "PolynomCurve degree " << degree << ":" << std::endl;
+    for (uint32_t i=0; i <= degree; ++i)
+      {
+        if (i > 0)
+          std::cerr << ", ";
+        std::cerr << "(" << p._coeff[i].x () << ", " << p._coeff[i].y () << ")";
+      }
+    std::cerr << std::endl;
     for (double t=-1.0; t <= 1.0; t += 0.125)
       {
         Position pt = p.get (t);

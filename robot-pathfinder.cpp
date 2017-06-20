@@ -6,11 +6,14 @@
 
 namespace Pathfinder
 {
-
+  void testModule ()
+  {
+    PolynomCurve<2>::test ();
+  }
 }
 
 int main (int argc, char** argv)
 {
-  Pathfinder::PolynomCurve<2>::test ();
+  //Pathfinder::testModule ();
   return 0;
 }
