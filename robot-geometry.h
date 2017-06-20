@@ -108,6 +108,7 @@ namespace Pathfinder
   template<uint32_t degree>
   bool PolynomCurve<degree>::adjust (const std::vector<Position> & positions)
   {
+    Eigen::MatrixXd a;
     return false;
   }
 }
