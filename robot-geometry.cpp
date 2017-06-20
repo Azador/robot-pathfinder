@@ -20,7 +20,7 @@ namespace Pathfinder
   }
 
   Position::Position (double x, double y)
-  : Eigen::Vector2d ({x, y})
+  : Eigen::Vector2d (x, y)
   {
   }
 
@@ -144,7 +144,7 @@ namespace Pathfinder
     computeScalingRotation<Eigen::Matrix2d, Eigen::Matrix2d>
       (nullptr /*scaling*/, &rotation);
 
-    Eigen::Rotation2Dd rot2;
+    Eigen::Rotation2Dd rot2 (0);
     rot2.fromRotationMatrix (rotation);
     return rot2.angle ();
   }
