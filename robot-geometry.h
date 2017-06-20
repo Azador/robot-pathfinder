@@ -5,7 +5,9 @@
 #include <vector>
 #include <cstdint>
 #include <cmath>
+#include <iostream>
 #include <Eigen/Dense>
+#include<Eigen/StdVector>
 
 namespace Pathfinder
 {
@@ -60,7 +62,9 @@ namespace Pathfinder
       PolynomCurve ();
 
       Position get (double t) const;
-      bool adjust (const std::vector<Position> & positions);
+      bool adjust (const std::vector<Position,Eigen::aligned_allocator<Position>> & positions);
+
+      static void test ();
 
     private:
       Eigen::Matrix<Position, degree+1, 1> _coeff;
@@ -106,9 +110,86 @@ namespace Pathfinder
   }
 
   template<uint32_t degree>
-  bool PolynomCurve<degree>::adjust (const std::vector<Position> & positions)
+  bool PolynomCurve<degree>::adjust (const std::vector<Position,Eigen::aligned_allocator<Position>> & positions)
   {
+    if (positions.size () <= degree)
+      return false;
+
     Eigen::MatrixXd a;
-    return false;
+    a.resize (positions.size (), degree+1);
+    Eigen::VectorXd vx (positions.size ());
+    Eigen::VectorXd vy (positions.size ());
+
+    std::vector<double> t (positions.size ());
+    t[0] = 0;
+    for (uint32_t i=1; i < positions.size (); ++i)
+      t[i] = t[i-1] + positions[i].distance (positions[i-1]);
+
+    if (t.back() <= 0.0)
+      return false;
+
+    for (double& ti: t)
+      ti /= t.back () / 2.0 - 1.0;
+
+    for (uint32_t i=0; i <= degree; ++i)
+      _coeff[i] = Position (0, 0);
+
+    for (uint32_t i=0; i < positions.size (); ++i)
+      {
+        double ti = t[i];
+
+        vx[i] = 0.0;
+        vy[i] = 0.0;
+        for (uint32_t j=0; j <= degree; ++j)
+          {
+            double pti = ::pow (ti, j);
+            a (i, j) = -pti;
+            vx[i] += _coeff[j].x () * pti;
+            vy[i] += _coeff[j].y () * pti;
+          }
+
+        vx[i] = vx[i] - positions[i].x ();
+        vy[i] = vy[i] - positions[i].y ();
+      }
+
+    Eigen::Matrix<double, degree+1, degree+1> n = a.transpose () * a;
+    Eigen::Matrix<double, degree+1, 1> lx = a.transpose () * vx;
+    Eigen::Matrix<double, degree+1, 1> ly = a.transpose () * vy;
+
+    Eigen::LDLT<Eigen::Matrix<double, degree+1, degree+1>> cholesky (n);
+    Eigen::Matrix<double, degree+1, 1> xx = cholesky.solve (lx);
+    Eigen::Matrix<double, degree+1, 1> xy = cholesky.solve (ly);
+
+    for (uint32_t i=0; i <= degree; ++i)
+      _coeff[i] += Position (xx[i], xy[i]);
+
+    return true;
+  }
+
+  template<uint32_t degree>
+  void PolynomCurve<degree>::test ()
+  {
+    if (degree > 3)
+      return;
+
+    std::vector<Position,Eigen::aligned_allocator<Position>> pos;
+    pos.push_back (Position (0, 0));
+    pos.push_back (Position (1, 0.5));
+    pos.push_back (Position (2, 0.75));
+    pos.push_back (Position (3, 1.5));
+
+    PolynomCurve p;
+    if (!p.adjust (pos))
+      {
+        std::cerr << "Adjust of PolynomCurve degree " << degree << " failed" << std::endl;
+        return;
+      }
+
+    std::cerr << "PolynomCurve degree " << degree << ":" << std::endl;
+    for (double t=-1.0; t <= 1.0; t += 0.125)
+      {
+        Position pt = p.get (t);
+        std::cerr << t << ": " << pt.x () << ", " << pt.y () << std::endl;
+      }
   }
 }
