@@ -7,5 +7,5 @@ The distinction between those should be self taught.
 The robot should be able to navigate through the area and, when finding new objects, map them on the fly.
 The robot itself is controlled by a micro controller. The program of this project should communicate with the robot through a, yet to be defined, wireless communication channel.
 
-My native language is german, so I will write many further things -- like comments in the source code -- in german.
-If there is someone else who wants to contribute to this project, I can switch to english and translate necessary things on demand, just ask for it :)
+My native language is german, so it may happen that I write some comments or other things in german. But I will try to stick to english.
+If there is someone else who wants to contribute to this project, I can eventually translate existing text to english, just ask for it :)
