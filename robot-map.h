@@ -7,41 +7,6 @@
 
 #include "robot-geometry.h"
 
-#if __cplusplus >= 201700L
-#  include <optional>
-#else
-namespace std
-{
-  template<class T>
-  class optional
-  {
-    public:
-      optional () : _d (0) {};
-      ~optional () { reset (); };
-
-      void reset () { if (_d != 0) { delete _d; _d = 0;} };
-      T & emplace () { if (_d == 0) new T; return *_d; };
-
-      T * operator-> () { return _d; };
-      const T * operator-> () const { return _d; };
-      T & operator* () { return *_d; };
-      const T & operator* () const { return *_d; };
-      bool has_value () const { return _d != 0; };
-
-      const T & operator= (const T & v)
-      {
-        emplace ();
-        *_d = v;
-        return *_d;
-      }
-
-    private:
-      T * _d;
-  };
-}
-#endif
-
-
 namespace Pathfinder
 {
   class MapObject
@@ -49,7 +14,7 @@ namespace Pathfinder
     public:
       MapObject (double min_point_distance);
 
-      const std::vector<Position>& getPolygon () const;
+      const std::vector<Position,Eigen::aligned_allocator<Position>>& getPolygon () const;
       bool isClosed () const;
       bool isEmpty () const;
       bool join (const MapObject & other, double max_dist);
@@ -68,7 +33,7 @@ namespace Pathfinder
 
     private:
       double _min_point_distance;
-      std::vector<Position> _poly;
+      std::vector<Position,Eigen::aligned_allocator<Position>> _poly;
   };
 
   class Map

@@ -7,7 +7,41 @@
 #include <cmath>
 #include <iostream>
 #include <Eigen/Dense>
-#include<Eigen/StdVector>
+#include <Eigen/StdVector>
+
+#if __cplusplus >= 201700L
+#  include <optional>
+#else
+namespace std
+{
+  template<class T>
+  class optional
+  {
+    public:
+      optional () : _d (0) {};
+      ~optional () { reset (); };
+
+      void reset () { if (_d != 0) { delete _d; _d = 0;} };
+      T & emplace () { if (_d == 0) new T; return *_d; };
+
+      T * operator-> () { return _d; };
+      const T * operator-> () const { return _d; };
+      T & operator* () { return *_d; };
+      const T & operator* () const { return *_d; };
+      bool has_value () const { return _d != 0; };
+
+      const T & operator= (const T & v)
+      {
+        emplace ();
+        *_d = v;
+        return *_d;
+      }
+
+    private:
+      T * _d;
+  };
+}
+#endif
 
 namespace Pathfinder
 {
@@ -62,7 +96,8 @@ namespace Pathfinder
       PolynomCurve ();
 
       Position get (double t) const;
-      bool adjust (const std::vector<Position,Eigen::aligned_allocator<Position>> & positions);
+      std::optional<double> adjust (const std::vector<Position,Eigen::aligned_allocator<Position>> & positions);
+      Position projectOnCurve (const Position & pos, double t_min = -1.0, double t_max = 1.0) const;
 
       static void test ();
 
@@ -110,10 +145,12 @@ namespace Pathfinder
   }
 
   template<uint32_t degree>
-  bool PolynomCurve<degree>::adjust (const std::vector<Position,Eigen::aligned_allocator<Position>> & positions)
+  std::optional<double> PolynomCurve<degree>::adjust
+  (const std::vector<Position,Eigen::aligned_allocator<Position>> & positions)
   {
+    std::optional<double> residual;
     if (positions.size () <= degree)
-      return false;
+      return residual;
 
     Eigen::MatrixXd a;
     a.resize (positions.size (), degree+1);
@@ -126,7 +163,7 @@ namespace Pathfinder
       t[i] = t[i-1] + positions[i].distance (positions[i-1]);
 
     if (t.back() <= 0.0)
-      return false;
+      return residual;
 
     for (double& ti: t)
       ti = 2.0 * ti / t.back () - 1.0;
@@ -156,7 +193,28 @@ namespace Pathfinder
     for (uint32_t i=0; i <= degree; ++i)
       _coeff[i] = Position (xx[i], xy[i]);
 
-    return true;
+    residual = 0;
+
+    for (uint32_t i=0; i < positions.size (); ++i)
+      {
+        Position p = get (t[i]);
+        *residual += fabs (p.x () - positions[i].x ()) + fabs (p.y () - positions[i].y ());
+      }
+
+    *residual /= positions.size () * 2;
+
+    return residual;
+  }
+
+  template<uint32_t degree>
+  Position PolynomCurve<degree>::projectOnCurve (const Position & pos, double t_min, double t_max) const
+  {
+    // ToDo: Implementation missing!
+
+    // Gesucht:
+    // t: mit ((Summe über i (_coeff[i].x*t^i)) - pos.x)^2 + ((Summe über i (_coeff[i].y*t^i)) - pos.y)^2 minimal
+    //    und t_min <= t <= t_max
+    return pos;
   }
 
   template<uint32_t degree>
@@ -172,7 +230,8 @@ namespace Pathfinder
     pos.push_back (Position (3, 1.5));
 
     PolynomCurve p;
-    if (!p.adjust (pos))
+    std::optional<double> residual = p.adjust (pos);
+    if (!residual.has_value ())
       {
         std::cerr << "Adjust of PolynomCurve degree " << degree << " failed" << std::endl;
         return;

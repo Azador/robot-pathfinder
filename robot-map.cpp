@@ -15,7 +15,7 @@ namespace Pathfinder
   {
   }
 
-  const std::vector<Position>& MapObject::getPolygon () const
+  const std::vector<Position,Eigen::aligned_allocator<Position>>& MapObject::getPolygon () const
   {
     return _poly;
   }
@@ -281,6 +281,93 @@ namespace Pathfinder
    */
   void MapObject::smooth (double max_deviation, uint32_t filter_size)
   {
+    bool closed = isClosed ();
+
+    if (filter_size < 2)
+      filter_size = 2;
+
+    uint32_t min_points = filter_size * 2 + 1;
+    if (closed)
+      ++min_points;
+
+    if (_poly.size () < min_points)
+      return;
+
+    std::vector<Position,Eigen::aligned_allocator<Position>> filter_array (filter_size * 2 + 1);
+    std::vector<Position,Eigen::aligned_allocator<Position>> new_poly (_poly.size ());
+    PolynomCurve<2> poly_curve;
+    std::optional<double> residual;
+
+    for (uint32_t i = closed ? 1 : 0; i < _poly.size (); ++i)
+      {
+        bool need_adjust = true;
+
+        if (i < filter_size || i + filter_size >= _poly.size ())
+          {
+            if (closed)
+              {
+                if (i < filter_size)
+                  {
+                    uint32_t d = filter_size - i;
+                    uint32_t k = 0;
+                    for (uint32_t j=_poly.size () - d; j < _poly.size (); ++j, ++k)
+                      filter_array[k] = _poly[j];
+
+                    // Leave out index 0, that's the same point as the last one in _poly (isClosed)
+                    d = filter_size*2 + 1 - d;
+                    for (uint32_t j=1; j <= d; ++j, ++k)
+                      filter_array[k] = _poly[j];
+                  }
+                else
+                  {
+                    uint32_t k = 0;
+                    for (uint32_t j=i-filter_size; j < _poly.size (); ++j, ++k)
+                      filter_array[k] = _poly[j];
+
+                    // Leave out index 0, that's the same point as the last one in _poly (isClosed)
+                    uint32_t d = (i + filter_size + 1) - _poly.size ();
+                    for (uint32_t j=1; j <= d; ++j, ++k)
+                      filter_array[k] = _poly[j];
+                  }
+              }
+            else
+              {
+                if (i == 0)
+                  for (uint32_t j=0; j <= filter_size*2; ++j)
+                    filter_array[j] = _poly[j];
+                else if (i + filter_size == _poly.size ())
+                  for (uint32_t j=_poly.size () - filter_size*2 - 1; j < _poly.size (); ++j)
+                    filter_array[j - (_poly.size () - filter_size*2 - 1)] = _poly[j];
+                else
+                  need_adjust = false;
+              }
+          }
+        else
+          {
+            for (uint32_t j=i-filter_size; j <= i+filter_size; ++j)
+              filter_array[j-(i-filter_size)] = _poly[j];
+          }
+
+        if (need_adjust)
+          residual = poly_curve.adjust (filter_array);
+
+        if (residual.has_value () && *residual <= max_deviation)
+          {
+            Position pnew = poly_curve.projectOnCurve (_poly[i]);
+
+            if (pnew.distance (_poly[i]) <= max_deviation)
+              new_poly[i] = pnew;
+            else
+              new_poly[i] = _poly[i];
+          }
+        else
+          new_poly[i] = _poly[i];
+      }
+
+    if (closed)
+      new_poly[0] = new_poly.back ();
+
+    _poly.swap (new_poly);
   }
 
   /* Change the number of points, so that at least min_points points exist and these points
@@ -291,6 +378,7 @@ namespace Pathfinder
    */
   void MapObject::makeEquidistant (double max_dist, uint32_t min_points, double max_deviation)
   {
+    // ToDo: Implementation missing
   }
 
   /* Change this MapObject to its convex hull.
@@ -300,6 +388,7 @@ namespace Pathfinder
    */
   void MapObject::convexHull ()
   {
+    // ToDo: Implementation missing
   }
 
   std::optional<MapObject::FindResult>
