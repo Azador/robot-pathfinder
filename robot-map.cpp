@@ -382,13 +382,85 @@ namespace Pathfinder
   }
 
   /* Change this MapObject to its convex hull.
-   * If this is not closed, it will be closed before creating the convex hull by
+   * If this is not closed, it will be closed after creating the convex hull by
    * connecting the end point to the start point.
-   * Crossings will be removed before creating the convex hull.
+   * Crossings will be removed.
+   *
+   * There are less than three distinct points, this method will do nothing.
    */
   void MapObject::convexHull ()
   {
-    // ToDo: Implementation missing
+    // less than four points are always convex (triangle).
+    if (_poly.size () < 4)
+      {
+        if (_poly.size () == 3)
+          _poly.push_back (_poly[0]); // Close the triangle
+        return;
+      }
+
+    if (isClosed ())
+      {
+        // Closed: four points are three points...
+        if (_poly.size () == 4)
+          return;
+
+        // Closed -> remove the last point to not have it doubled
+        _poly.pop_back ();
+      }
+
+    Position prev = _poly[0];
+    uint32_t prev_idx = 0;
+    for (uint32_t i=1; i < _poly.size (); ++i)
+      if (_poly[i].x () < prev.x ()
+        || (_poly[i].x () == prev.x ()
+          && _poly[i].y () < prev.y ()))
+        {
+          prev = _poly[i];
+          prev_idx = i;
+        }
+
+    uint32_t first_idx = prev_idx;
+
+    std::vector<Position,Eigen::aligned_allocator<Position>> hull;
+    hull.push_back (prev);
+
+    static double pi = std::acos (-1);
+    uint32_t next_idx;
+
+    do
+      {
+        next_idx = prev_idx==0 ? 1 : 0;
+        Position next = _poly[next_idx];
+        Eigen::Vector2d next_dir = next - prev;
+        double next_a = std::atan2 (next_dir.y (), next_dir.x ());
+
+        for (uint32_t i=0; i < _poly.size (); ++i)
+          {
+            if (i == prev_idx)
+              continue;
+
+            Eigen::Vector2d dir = _poly[i] - prev;
+            double a = std::atan2 (dir.y (), dir.x ());
+            double da = a - next_a;
+            if (da < -pi)
+              da += 2*pi;
+
+            if (da > 0)
+              {
+                next_idx = i;
+                next = _poly[i];
+                next_dir = dir;
+                next_a = a;
+              }
+          }
+
+        hull.push_back (next);
+        prev = next;
+        prev_idx = next_idx;
+      }
+    while (next_idx != first_idx);
+
+    _poly.swap (hull);
   }
 
   std::optional<MapObject::FindResult>

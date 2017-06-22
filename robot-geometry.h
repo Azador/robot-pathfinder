@@ -3,6 +3,7 @@
  */
 
 #include <vector>
+#include <map>
 #include <cstdint>
 #include <cmath>
 #include <iostream>
@@ -152,7 +153,7 @@ namespace Pathfinder
     if (positions.size () <= degree)
       return residual;
 
-    Eigen::MatrixXd a;
+    Eigen::Matrix<double, Eigen::Dynamic, degree+1> a;
     a.resize (positions.size (), degree+1);
     Eigen::VectorXd vx (positions.size ());
     Eigen::VectorXd vy (positions.size ());
@@ -209,12 +210,54 @@ namespace Pathfinder
   template<uint32_t degree>
   Position PolynomCurve<degree>::projectOnCurve (const Position & pos, double t_min, double t_max) const
   {
-    // ToDo: Implementation missing!
+    // First, try to find a good starting point for the adjustment.
+    // Probe n positions from t_min to t_max (n==32):
+    double step = (t_max - t_min) / 32;
+    double best_t = t_min;
+    double best_dist = get (t_min).distance (pos);
 
-    // Gesucht:
-    // t: mit ((Summe über i (_coeff[i].x*t^i)) - pos.x)^2 + ((Summe über i (_coeff[i].y*t^i)) - pos.y)^2 minimal
-    //    und t_min <= t <= t_max
-    return pos;
+    for (uint32_t i=1; i <= 32; ++i)
+      {
+        double t = t_min + i * step;
+        double dist = get (t).distance (pos);
+
+        if (dist < best_dist)
+          {
+            best_dist = dist;
+            best_t = t;
+          }
+      }
+
+    // Now try to iteratively minimize the error
+    uint32_t iter = 0;
+    double x;
+    do
+      {
+        Position deriv (0, 0);
+        for (uint32_t i=1; i <= degree; ++i)
+          deriv += _coeff[i] * pow (best_t, i-1) * i;
+        Position dist = get (best_t) - pos;
+
+        double n = deriv.norm ();
+        double l = deriv.transpose () * dist;
+        x = l/n;
+        best_t += x;
+        if (best_t > t_max)
+          {
+            best_t = t_max;
+            break;
+          }
+        else if (best_t < t_min)
+          {
+            best_t = t_min;
+            break;
+          }
+
+        ++iter;
+      }
+    while (x > 1e-12 && iter < 20);
+
+    return get (best_t);
   }
 
   template<uint32_t degree>
