@@ -50,8 +50,10 @@ namespace Pathfinder
   {
     public:
       Position ();
-      Position (const Eigen::Vector2d & v);
       Position (double x, double y);
+
+      template<class T>
+      Position (const T & p) : Eigen::Vector2d (p) {}
 
       double & x ()             { return operator[] (0); }
       const double & x () const { return operator[] (0); }

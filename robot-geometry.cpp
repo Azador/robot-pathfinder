@@ -14,11 +14,6 @@ namespace Pathfinder
   {
   }
 
-  Position::Position (const Eigen::Vector2d & v)
-  : Eigen::Vector2d (v)
-  {
-  }
-
   Position::Position (double x, double y)
   : Eigen::Vector2d (x, y)
   {
