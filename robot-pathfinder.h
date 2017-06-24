@@ -2,7 +2,7 @@
  *
  */
 
-#include "robot-map.h"
+#include "robot-mapwidget.h"
 
 namespace Pathfinder
 {
