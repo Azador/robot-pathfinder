@@ -5,7 +5,7 @@
 #include <vector>
 #include <cstdint>
 
-#include <qt5/QtWidgets/qgraphicsscene.h>
+#include <QtWidgets/qgraphicsscene.h>
 
 #include "robot-map.h"
 
