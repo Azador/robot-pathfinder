@@ -17,6 +17,8 @@ namespace Pathfinder
       const std::vector<Position,Eigen::aligned_allocator<Position>>& getPolygon () const;
       bool isClosed () const;
       bool isEmpty () const;
+      void appendPoint (const Position & point);
+      void clear ();
       bool join (const MapObject & other, double max_dist);
       bool addPoint (const Position & point, double max_dist);
       void smooth (double max_deviation, uint32_t filter_size);
@@ -40,6 +42,10 @@ namespace Pathfinder
   {
     public:
       Map ();
+
+      void addObject (const MapObject & obj);
+      void addObject (MapObject && obj);
+      const std::vector<MapObject> & getObjects () const;
 
     private:
       std::vector<MapObject> _objects;

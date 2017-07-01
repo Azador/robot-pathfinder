@@ -33,6 +33,22 @@ namespace Pathfinder
     return _poly.empty ();
   }
 
+  void MapObject::appendPoint (const Position & point)
+  {
+    if (isClosed ())
+      {
+	_poly.back () = point;
+	_poly.push_back (_poly[0]);
+      }
+    else
+      _poly.push_back (point);
+  }
+
+  void MapObject::clear ()
+  {
+    _poly.clear ();
+  }
+
   /* Join two MapObjects.
    *
    * The points should be in similar distances on both objects, otherwise this algorithm
@@ -228,6 +244,13 @@ namespace Pathfinder
 
   bool MapObject::addPoint (const Position & point, double max_dist)
   {
+    if (_poly.empty ())
+      {
+	// first point -> just add it
+	_poly.push_back (point);
+	return true;
+      }
+
     std::optional<MapObject::FindResult> dist = findClosestPosition (point);
 
     if (!dist.has_value () || dist->distance > max_dist)
@@ -466,6 +489,7 @@ namespace Pathfinder
   std::optional<MapObject::FindResult>
   MapObject::findClosestPosition (const Position & pos) const
   {
+    std::cerr << "size: " << _poly.size () << std::endl;
     std::optional<MapObject::FindResult> found;
     if (_poly.empty ())
       return found;
@@ -508,5 +532,20 @@ namespace Pathfinder
   Map::Map ()
   : _objects ()
   {
+  }
+
+  void Map::addObject (const MapObject & obj)
+  {
+    _objects.push_back (obj);
+  }
+
+  void Map::addObject (MapObject && obj)
+  {
+    _objects.push_back (obj);
+  }
+
+  const std::vector<MapObject> & Map::getObjects () const
+  {
+    return _objects;
   }
 }

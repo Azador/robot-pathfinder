@@ -5,7 +5,7 @@
 #include <vector>
 #include <cstdint>
 
-#include <QtWidgets/qgraphicsscene.h>
+#include <QGraphicsScene>
 
 #include "robot-map.h"
 
@@ -15,6 +15,8 @@ namespace Pathfinder
   {
     public:
       MapScene (QObject * parent, Map * map);
+
+      void updateScene ();
 
     private:
       Map * _map;

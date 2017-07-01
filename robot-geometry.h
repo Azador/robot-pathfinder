@@ -23,7 +23,7 @@ namespace std
       ~optional () { reset (); };
 
       void reset () { if (_d != 0) { delete _d; _d = 0;} };
-      T & emplace () { if (_d == 0) new T; return *_d; };
+      T & emplace () { if (_d == 0) _d = new T; return *_d; };
 
       T * operator-> () { return _d; };
       const T * operator-> () const { return _d; };
