@@ -9,17 +9,28 @@
 
 namespace Pathfinder
 {
+  /* Creating an empty object where two distinct points should be at least min_point_distance appart.
+   */
   MapObject::MapObject (double min_point_distance)
   : _min_point_distance (min_point_distance),
     _poly ()
   {
   }
 
+  /* Get the points of the object.
+   *
+   * If closed, the last point is at the same position as the first point.
+   */
   const std::vector<Position,Eigen::aligned_allocator<Position>>& MapObject::getPolygon () const
   {
     return _poly;
   }
 
+  /* Is the object closed and is not empty.
+   *
+   * An object is closed if it ends at the equal position as it starts.
+   * Making at least two points necessary to have a closed object.
+   */
   bool MapObject::isClosed () const
   {
     if (_poly.size () < 2)
@@ -28,11 +39,16 @@ namespace Pathfinder
     return _poly.front () == _poly.back ();
   }
 
+  /* Is the object empty (has not a single point) */
   bool MapObject::isEmpty () const
   {
     return _poly.empty ();
   }
 
+  /* Append a single point as the last point.
+   *
+   * The closed state will be kept, min_point_distance will not be checked.
+   */
   void MapObject::appendPoint (const Position & point)
   {
     if (isClosed ())
@@ -44,6 +60,24 @@ namespace Pathfinder
       _poly.push_back (point);
   }
 
+  /* Make the object closed or open.
+   *
+   * Making this object closed will copy the first point at the end, makeing it open, will remove
+   * the last point. Changes will only happen, if it is not already in the desired state.
+   */
+  void MapObject::setClosed (bool closed)
+  {
+    if (isClosed () == closed)
+      return;
+
+    if (closed)
+      _poly.push_back (_poly[0]);
+    else
+      _poly.pop_back ();
+  }
+
+  /* Clear the object by removing all points of it.
+   */
   void MapObject::clear ()
   {
     _poly.clear ();
@@ -242,6 +276,15 @@ namespace Pathfinder
     return true;
   }
 
+  /* Add a point to the object at the right position.
+   *
+   * The point will be added if it is at least _min_point_distance away from the next point
+   * in this object and at most max_dist away from the curve of this object.
+   *
+   * It will be added at the right position.
+   *
+   * Returns if the point was close enough to the curve.
+   */
   bool MapObject::addPoint (const Position & point, double max_dist)
   {
     if (_poly.empty ())

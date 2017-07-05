@@ -18,6 +18,7 @@ namespace Pathfinder
       bool isClosed () const;
       bool isEmpty () const;
       void appendPoint (const Position & point);
+      void setClosed (bool closed);
       void clear ();
       bool join (const MapObject & other, double max_dist);
       bool addPoint (const Position & point, double max_dist);
