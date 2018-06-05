@@ -1,4 +1,7 @@
 # robot-pathfinder
+
+No longer maintained here. Moved to https://gitlab.com/Azador/dice
+
 Navigate a small robot through an unknown terrain
 
 In this project, I'll try to create a map for an unknown area.
