@@ -1,6 +1,7 @@
 # robot-pathfinder
 
-No longer maintained here. Moved to https://gitlab.com/Azador/dice
+No longer maintained here. Moved to https://gitlab.com/Azador/robot-pathfinder
+
 
 Navigate a small robot through an unknown terrain
 
